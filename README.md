@@ -1,0 +1,2 @@
+# AI-STUDY-GENERNATION-SCHOOL
+全民必懂的 AI 通識課
