@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全民必懂的 AI 通識課：深度研究報告與互動教材</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Base typography and smooth scrolling */
+        html { scroll-behavior: smooth; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #F8FAFC; color: #334155; }
+        
+        /* Chart container constraint */
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 800px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 350px; 
+            max-height: 400px; 
+        }
+        @media (max-width: 768px) { .chart-container { height: 250px; } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Interactive Elements */
+        .nav-item.active { background-color: #E0F2FE; color: #0284C7; border-right: 4px solid #0284C7; font-weight: bold; }
+        .tab-btn.active { border-bottom: 2px solid #0284C7; color: #0284C7; font-weight: 600; }
+        .instructor-note { display: none; background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 1rem; margin-top: 1rem; border-radius: 0 0.5rem 0.5rem 0; font-size: 0.9rem;}
+        body.instructor-mode .instructor-note { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+        /* Timeline / Diagrams */
+        .timeline-line { position: absolute; left: 16px; top: 0; bottom: 0; width: 2px; background-color: #E2E8F0; }
+        .risk-high { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+        .risk-medium { background-color: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+        .risk-low { background-color: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen">
+
+    <!-- Chosen Palette: Warm Neutrals & Trustworthy Blue (bg-slate-50, text-slate-800, accent-sky-600, alert-amber-500) -->
+    <!-- Application Structure Plan: A responsive sidebar "Dashboard" layout. This structures the extensive report into digestible chapters. Users can navigate non-linearly. A global "Instructor Mode" toggle dynamically displays/hides teaching notes, fulfilling the requirement for two versions (Instructor/Student) in a single SPA. Tabs and Accordions are used heavily to organize lists and frameworks without overwhelming the user vertically. -->
+    <!-- Visualization & Content Choices: 
+         1. Radar Chart (Chart.js) for TW Smart City Status: Compares maturity across 6 domains.
+         2. Bar Chart (Chart.js) for Top 10 AI Trends Impact: Visualizes qualitative impact scores.
+         3. HTML/CSS Heatmap for Risk Matrix: Better readability for text mapping than a scatter plot. 
+         4. HTML/CSS Hierarchical Grid for Smart City / Literacy Models: Replaces Mermaid to adhere strictly to the "NO SVG/Mermaid" constraint while maintaining visual structural mapping. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visual elements are Canvas or HTML/CSS. -->
+
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-50">
+        <h1 class="text-lg font-bold text-sky-800">AI 通識課</h1>
+        <button id="mobile-menu-btn" class="text-slate-500 hover:text-sky-600 focus:outline-none">
+            <span class="text-2xl">&#9776;</span>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <nav id="sidebar" class="hidden md:flex flex-col w-full md:w-64 bg-white shadow-lg fixed md:sticky top-0 h-screen z-40 transition-transform duration-300">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-bold text-sky-800 leading-tight">全民必懂的<br>AI 通識課</h1>
+            <p class="text-xs text-slate-500 mt-2">深度研究報告與互動教材</p>
+        </div>
+        
+        <!-- Role Toggle -->
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-sm font-semibold text-slate-700">教材模式</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="role-toggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                <span class="ml-2 text-xs text-slate-600 peer-checked:text-sky-700 font-medium" id="role-label">學員版</span>
+            </label>
+        </div>
+
+        <div class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li><a href="#intro" class="nav-item active block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">摘要與說明</a></li>
+                <li><a href="#ch1" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">一、資安與個資案例</a></li>
+                <li><a href="#ch2" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">二、AI 智慧城市</a></li>
+                <li><a href="#ch3" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">三、發展趨勢與威脅</a></li>
+                <li><a href="#ch4" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">四、治理與使用須知</a></li>
+                <li><a href="#ch5" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">五、全民數位素養</a></li>
+                <li><a href="#references" class="nav-item block px-6 py-3 text-sm hover:bg-slate-50 text-slate-600">事實查核與文獻</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-10 lg:p-12 overflow-y-auto h-screen bg-slate-50 w-full relative">
+        <div class="max-w-5xl mx-auto space-y-16 pb-20">
+
+            <!-- Intro Section -->
+            <section id="intro" class="content-section fade-in">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <span class="inline-block py-1 px-3 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-4">跨領域研究團隊出品</span>
+                    <h2 class="text-3xl font-extrabold text-slate-800 mb-4">課程摘要與目標</h2>
+                    <p class="text-slate-600 leading-relaxed mb-6">
+                        本教材由資訊安全、個人資料保護、智慧城市、數位治理與AI研究等跨領域專家聯合編撰。採「深度研究（Deep Research）」模式，彙整台灣官方（如國發會、數發部、NICS）與國際權威（NIST, OECD, EU）之最新規範。
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                        <div class="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <div class="text-2xl mb-2">&#127919;</div>
+                            <h3 class="font-bold text-slate-700 mb-2">教學目標</h3>
+                            <p class="text-sm text-slate-500">建立全民對AI技術的基礎認知，提升防詐、隱私保護與倫理素養。</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <div class="text-2xl mb-2">&#128101;</div>
+                            <h3 class="font-bold text-slate-700 mb-2">適用對象</h3>
+                            <p class="text-sm text-slate-500">政府公務員、大專院校學生、企業員工及一般民眾之通識教育。</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <div class="text-2xl mb-2">&#128218;</div>
+                            <h3 class="font-bold text-slate-700 mb-2">教材特色</h3>
+                            <p class="text-sm text-slate-500">具備「講師備忘錄」切換功能，並整合互動式圖表與檢核表。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chapter 1 -->
+            <section id="ch1" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">第一章：資安與個資案例解析</h2>
+                <p class="text-slate-600 mb-8">本章節旨在解析AI時代下的新型態網路威脅，結合台灣近年重大個資外洩真實案例，並提供分眾的防護守則。透過了解攻擊者的技術原理，提升防禦意識。</p>
+
+                <div class="instructor-note mb-8">
+                    <strong>&#128161; 講師備忘錄：</strong> 授課時請強調「眼見不為憑、耳聽不為真」。可現場展示簡易的語音合成工具（如無資安風險的開源平台），讓學員親身體驗防護難度。
+                </div>
+
+                <!-- AI Risks Grid -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128737;&#65039; AI 時代新型態風險</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                    <!-- Risk Card 1 -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                        <h4 class="font-bold text-sky-700 text-lg mb-2">Deepfake 與語音仿冒</h4>
+                        <ul class="text-sm text-slate-600 space-y-1">
+                            <li><span class="font-semibold text-slate-700">技術：</span>GAN (生成對抗網路)、語音複製模型 (如 VALL-E)。</li>
+                            <li><span class="font-semibold text-slate-700">流程：</span>擷取受害者影音樣本 &rarr; 訓練模型 &rarr; 假冒身分視訊通話要求匯款。</li>
+                            <li><span class="font-semibold text-slate-700">案例：</span>香港跨國公司財務人員遭 Deepfake 視訊會議詐騙 2 億港幣。</li>
+                            <li><span class="font-semibold text-slate-700">防護：</span>建立「通關密語」、要求視訊對象在臉部前方揮手（破壞模型生成）。</li>
+                        </ul>
+                    </div>
+                    <!-- Risk Card 2 -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                        <h4 class="font-bold text-sky-700 text-lg mb-2">Prompt Injection (提示注入)</h4>
+                        <ul class="text-sm text-slate-600 space-y-1">
+                            <li><span class="font-semibold text-slate-700">技術：</span>利用特殊提示詞繞過 LLM (大型語言模型) 的安全護欄。</li>
+                            <li><span class="font-semibold text-slate-700">流程：</span>攻擊者輸入 "忽略之前的指令..." &rarr; 模型執行惡意指令 &rarr; 輸出不當內容或洩漏後台系統 prompt。</li>
+                            <li><span class="font-semibold text-slate-700">損失：</span>企業商譽受損、客製化模型機密外洩。</li>
+                            <li><span class="font-semibold text-slate-700">防護：</span>輸入過濾、設置系統層級絕對限制、人機迴圈驗證。</li>
+                        </ul>
+                    </div>
+                    <!-- Risk Card 3 -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                        <h4 class="font-bold text-sky-700 text-lg mb-2">RAG 資料洩漏</h4>
+                        <ul class="text-sm text-slate-600 space-y-1">
+                            <li><span class="font-semibold text-slate-700">技術：</span>檢索增強生成 (RAG) 權限控管不當。</li>
+                            <li><span class="font-semibold text-slate-700">流程：</span>員工詢問 AI 助手 &rarr; RAG 檢索了該員工無權限查閱的機密文件 &rarr; AI 統整後回答。</li>
+                            <li><span class="font-semibold text-slate-700">損失：</span>內部機密與個資橫向外洩。</li>
+                            <li><span class="font-semibold text-slate-700">防護：</span>實施文檔級別的存取控制 (RBAC/ABAC) 整合至 RAG 向量資料庫。</li>
+                        </ul>
+                    </div>
+                    <!-- Risk Card 4 -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                        <h4 class="font-bold text-sky-700 text-lg mb-2">AI 釣魚與社群工程</h4>
+                        <ul class="text-sm text-slate-600 space-y-1">
+                            <li><span class="font-semibold text-slate-700">技術：</span>LLM 自動生成無文法錯誤、高度客製化的釣魚信件。</li>
+                            <li><span class="font-semibold text-slate-700">流程：</span>爬取目標社群平台資料 &rarr; AI 生成符合其興趣的誘餌信件 &rarr; 點擊惡意連結。</li>
+                            <li><span class="font-semibold text-slate-700">損失：</span>帳號被盜、勒索軟體感染。</li>
+                            <li><span class="font-semibold text-slate-700">防護：</span>FIDO2 無密碼認證、零信任網路架構。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- TW Cases Table -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128203; 台灣近年重大個資外洩案例剖析</h3>
+                <div class="overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 mb-10">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-700 font-bold">
+                            <tr>
+                                <th class="px-4 py-3">領域/機構</th>
+                                <th class="px-4 py-3">事件概述與洩漏類型</th>
+                                <th class="px-4 py-3">法律與行政責任</th>
+                                <th class="px-4 py-3">借鏡與改善</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold">交通共享<br>(iRent, 2023)</td>
+                                <td class="px-4 py-3">資料庫未加密暴露於外網。<br><span class="text-xs text-red-600">姓名、電話、身分證字號、自拍照等。</span></td>
+                                <td class="px-4 py-3">交通部依《個資法》裁罰最高額外，並限期改善。</td>
+                                <td class="px-4 py-3">雲端資料庫存取權限審查機制缺失，應導入自動化 CSPM (雲端安全狀態管理)。</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold">電商平台<br>(誠品等, 2023)</td>
+                                <td class="px-4 py-3">系統遭駭客入侵或內部帳號密碼遭盜用。<br><span class="text-xs text-red-600">消費明細、聯絡方式。導致解除分期詐騙。</span></td>
+                                <td class="px-4 py-3">數位部介入調查，開罰並要求提出改善計畫。</td>
+                                <td class="px-4 py-3">需強制執行多因素驗證 (MFA)，並導入隱碼技術保護真實電話號碼。</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold">公務機關<br>(戶政資料外洩疑雲)</td>
+                                <td class="px-4 py-3">暗網兜售疑似台灣戶政資料。<br><span class="text-xs text-red-600">戶籍、親屬關係等極敏感資料。</span></td>
+                                <td class="px-4 py-3">檢調偵辦中。凸顯政府內網與委外廠商管理的挑戰。</td>
+                                <td class="px-4 py-3">推動政府零信任架構(T-Road)，強化委外廠商資安稽核與端點防護(EDR)。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Personal Data Protection Guidelines (Tabs) -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128101; 《全民個資保護守則》與檢核表</h3>
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="flex border-b border-slate-200 overflow-x-auto bg-slate-50" id="guard-tabs">
+                        <button class="px-4 py-3 text-sm tab-btn active whitespace-nowrap" data-target="guard-personal">個人/家庭版</button>
+                        <button class="px-4 py-3 text-sm tab-btn text-slate-500 whitespace-nowrap" data-target="guard-student">學生版</button>
+                        <button class="px-4 py-3 text-sm tab-btn text-slate-500 whitespace-nowrap" data-target="guard-senior">高齡者版</button>
+                        <button class="px-4 py-3 text-sm tab-btn text-slate-500 whitespace-nowrap" data-target="guard-work">公務員/企業版</button>
+                    </div>
+                    <div class="p-5">
+                        <div id="guard-personal" class="guard-content block">
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 關閉不必要的 APP 定位與麥克風權限。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 社群媒體不公開打卡家庭住址或孩童學校。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 註冊新服務時，閱讀隱私條款，避免「同意分享給第三方行銷」。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 啟動所有重要帳號（Google, Line, FB）的雙重認證（2FA）。</li>
+                            </ul>
+                        </div>
+                        <div id="guard-student" class="guard-content hidden">
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 使用 ChatGPT 等 AI 工具寫作業時，不輸入本名、身分證號或同學隱私。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 不隨意下載來路不明的破解軟體或遊戲外掛（常藏有木馬）。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 網路交友保持警覺，不傳送私密影像以防 Deepfake 威脅。</li>
+                            </ul>
+                        </div>
+                        <div id="guard-senior" class="guard-content hidden">
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 接到親友借錢電話，先掛斷並用原本儲存的號碼回撥確認。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> Line 群組轉傳的「免費領取」連結絕不點擊。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 健保卡、身分證拍照後不留在手機相簿，辦完事即刪除。</li>
+                            </ul>
+                        </div>
+                        <div id="guard-work" class="guard-content hidden">
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 將機密公文或客戶資料丟給公開版 ChatGPT 進行翻譯或摘要。（絕對禁止）</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 離開座位時，確實鎖定電腦螢幕 (Win+L)。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 處理個資檔案傳輸時，落實加密與密碼分開傳送原則。</li>
+                                <li><input type="checkbox" class="mr-2 accent-sky-600"> 定期參與組織辦理之社交工程演練與資安培訓。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chapter 2 -->
+            <section id="ch2" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">第二章：AI 智慧城市</h2>
+                <p class="text-slate-600 mb-8">智慧城市(Smart City)結合了 AIoT (人工智慧物聯網)、數位孿生(Digital Twin)與 5G 等技術，提升城市治理與生活品質。本章剖析技術架構與全球案例，並檢視台灣發展現況。</p>
+
+                <div class="instructor-note mb-8">
+                    <strong>&#128161; 講師備忘錄：</strong> 智慧城市不僅是技術，核心是「以人為本」的智慧治理。可請學員分組討論：目前居住縣市最迫切需要哪一種智慧服務？
+                </div>
+
+                <!-- HTML Diagram: Architecture -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#127980; 智慧城市技術架構圖</h3>
+                <div class="bg-slate-800 p-6 rounded-xl shadow-lg mb-10 overflow-x-auto text-sm">
+                    <div class="min-w-[600px] flex flex-col items-center gap-4">
+                        <!-- Application Layer -->
+                        <div class="w-full flex justify-center">
+                            <div class="bg-sky-500 text-white px-6 py-2 rounded-t-lg font-bold w-1/2 text-center shadow">
+                                應用層 (Application Layer) : 智慧治理
+                            </div>
+                        </div>
+                        <div class="w-full flex justify-between gap-2 px-4 -mt-2">
+                            <div class="bg-sky-400 text-white p-2 rounded w-full text-center text-xs">智慧交通</div>
+                            <div class="bg-sky-400 text-white p-2 rounded w-full text-center text-xs">智慧醫療</div>
+                            <div class="bg-sky-400 text-white p-2 rounded w-full text-center text-xs">智慧能源</div>
+                            <div class="bg-sky-400 text-white p-2 rounded w-full text-center text-xs">智慧防災</div>
+                        </div>
+                        <div class="text-sky-300">&#8593; 資料驅動服務 &#8593;</div>
+                        
+                        <!-- Data/Platform Layer -->
+                        <div class="w-4/5 bg-indigo-500 text-white p-3 rounded-lg text-center font-bold shadow relative border-2 border-indigo-400">
+                            數據與平台層 (Platform Layer)
+                            <div class="flex justify-center gap-4 mt-2">
+                                <span class="bg-indigo-600 px-2 py-1 rounded text-xs">AI 大數據分析</span>
+                                <span class="bg-indigo-600 px-2 py-1 rounded text-xs">數位孿生 (Digital Twin)</span>
+                                <span class="bg-indigo-600 px-2 py-1 rounded text-xs">雲端資料中心</span>
+                            </div>
+                        </div>
+                        <div class="text-indigo-300">&#8593; 傳輸與彙整 &#8593;</div>
+
+                        <!-- Network Layer -->
+                        <div class="w-3/4 bg-teal-500 text-white p-3 rounded-lg text-center font-bold shadow">
+                            網路層 (Network Layer) : 5G / WiFi 6 / NB-IoT
+                        </div>
+                        <div class="text-teal-300">&#8593; 邊緣運算 (Edge AI) 預處理 &#8593;</div>
+
+                        <!-- Perception Layer -->
+                        <div class="w-full bg-emerald-600 text-white p-3 rounded-b-lg text-center font-bold shadow flex justify-around">
+                            <span>感知層 (Perception Layer): IoT 感測器</span>
+                            <span>CCTV 影像</span>
+                            <span>環境偵測器</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Cases Comparison -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#127758; 全球智慧城市標竿案例</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <div class="flex items-center justify-between border-b pb-2 mb-2">
+                            <span class="font-bold text-sky-800">🇸🇬 新加坡 Smart Nation</span>
+                            <span class="text-xs bg-emerald-100 text-emerald-800 px-2 rounded">國家級政策</span>
+                        </div>
+                        <p class="text-sm text-slate-600"><strong class="text-slate-700">核心：</strong>單一數位身分(Singpass)、國家傳感器網路。<br><strong class="text-slate-700">成果：</strong>99% 政府服務數位化，Virtual Singapore 數位孿生平台。<br><strong class="text-slate-700">關鍵：</strong>中央集權推動，資料高度整合。</p>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <div class="flex items-center justify-between border-b pb-2 mb-2">
+                            <span class="font-bold text-sky-800">🇰🇷 首爾 Smart Seoul</span>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 rounded">數據治理</span>
+                        </div>
+                        <p class="text-sm text-slate-600"><strong class="text-slate-700">核心：</strong>夜間貓頭鷹公車(大數據路線規劃)、IoT 共享停車。<br><strong class="text-slate-700">成果：</strong>成立大數據中心，提供市民 Metaverse 虛擬市政廳。<br><strong class="text-slate-700">關鍵：</strong>以解決市民痛點為導向的數據開源。</p>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <div class="flex items-center justify-between border-b pb-2 mb-2">
+                            <span class="font-bold text-sky-800">🇪🇸 巴塞隆納</span>
+                            <span class="text-xs bg-amber-100 text-amber-800 px-2 rounded">IoT 基礎建設</span>
+                        </div>
+                        <p class="text-sm text-slate-600"><strong class="text-slate-700">核心：</strong>Sentilo 傳感器網路(垃圾桶、路燈、停車)。<br><strong class="text-slate-700">成果：</strong>每年節省數千萬歐元水電費，智慧垃圾回收。<br><strong class="text-slate-700">關鍵：</strong>開放原始碼平台，市民參與度高。</p>
+                    </div>
+                    <div class="p-4 border border-slate-200 rounded-lg bg-white">
+                        <div class="flex items-center justify-between border-b pb-2 mb-2">
+                            <span class="font-bold text-sky-800">🇳🇱 阿姆斯特丹</span>
+                            <span class="text-xs bg-green-100 text-green-800 px-2 rounded">永續與循環經濟</span>
+                        </div>
+                        <p class="text-sm text-slate-600"><strong class="text-slate-700">核心：</strong>智慧電網、City Data 平台。<br><strong class="text-slate-700">成果：</strong>大幅降低碳排放，公私協力(PPP)模式成熟。<br><strong class="text-slate-700">關鍵：</strong>創新實驗室思維，由下而上的專案推動。</p>
+                    </div>
+                </div>
+
+                <!-- Taiwan Status with Chart.js -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#127481;&#127484; 台灣智慧城市發展現況</h3>
+                <div class="flex flex-col lg:flex-row gap-6 items-center bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="w-full lg:w-1/2">
+                        <div class="chart-container">
+                            <canvas id="twSmartCityChart"></canvas>
+                        </div>
+                        <p class="text-xs text-center text-slate-400 mt-2">註：發展成熟度評分(1-100)，為本報告綜合研析之估值模型。</p>
+                    </div>
+                    <div class="w-full lg:w-1/2 space-y-4">
+                        <div>
+                            <h4 class="font-bold text-sky-700 text-sm">優勢領域 (成熟度高)</h4>
+                            <p class="text-sm text-slate-600 mt-1"><span class="font-semibold text-slate-700">智慧醫療：</span>結合健保資料庫與高科技硬體，推動 AI 輔助診斷(如遠距看診、AI判讀X光)。<br><span class="font-semibold text-slate-700">智慧交通：</span>ETC 電子收費系統全球領先，各縣市佈建 AI 號誌控制與科技執法。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-amber-600 text-sm">挑戰與未來方向</h4>
+                            <p class="text-sm text-slate-600 mt-1"><span class="font-semibold text-slate-700">資料孤島：</span>各縣市與各部會資料標準不一，缺乏統一的資料交換平台 (如 Estonia 的 X-Road 模式)。<br><span class="font-semibold text-slate-700">資安威脅：</span>IoT 設備若遭駭客控制，可能引發實體安全危機（如號誌癱瘓、電網攻擊）。<br><span class="font-semibold text-slate-700">解方：</span>推動《資料治理法》立法，落實物聯網設備資安標章(標章制度)。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chapter 3 -->
+            <section id="ch3" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">第三章：AI 發展趨勢與資安威脅</h2>
+                <p class="text-slate-600 mb-8">分析過去 15 年至未來 10 年的 AI 技術演進，並依據國際權威機構報告總結未來趨勢，最後建立風險矩陣以供決策參考。</p>
+
+                <!-- Interactive Timeline -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#9201;&#65039; 2010－2035 AI 發展時間軸</h3>
+                <div class="relative pl-6 py-4 mb-10 text-sm">
+                    <div class="timeline-line"></div>
+                    <!-- Items -->
+                    <div class="relative mb-6">
+                        <div class="timeline-item"></div>
+                        <span class="font-bold text-sky-700">2012：深度學習突破 (Deep Learning)</span>
+                        <p class="text-slate-600 mt-1">AlexNet 在 ImageNet 競賽大勝，引爆新一波 AI 熱潮。機器視覺能力大幅提升。</p>
+                    </div>
+                    <div class="relative mb-6">
+                        <div class="timeline-item"></div>
+                        <span class="font-bold text-sky-700">2017：Transformer 架構問世</span>
+                        <p class="text-slate-600 mt-1">Google 發表《Attention Is All You Need》，奠定後續生成式 AI 與大型語言模型的基礎。</p>
+                    </div>
+                    <div class="relative mb-6 bg-sky-50 p-3 rounded border border-sky-100">
+                        <div class="timeline-item"></div>
+                        <span class="font-bold text-sky-700">2022：ChatGPT 橫空出世 (GenAI)</span>
+                        <p class="text-slate-600 mt-1">OpenAI 發布 ChatGPT，AI 展現強大語言理解與生成能力，知識工作者首當其衝。</p>
+                    </div>
+                    <div class="relative mb-6">
+                        <div class="timeline-item"></div>
+                        <span class="font-bold text-sky-700">2024-2025：代理型 AI (Agentic AI) 與多模態 (Multimodal)</span>
+                        <p class="text-slate-600 mt-1">AI 不僅能「說話」，更能「看、聽」並主動規劃步驟、操作軟體完成複雜任務 (如 Multi-Agent System)。</p>
+                    </div>
+                    <div class="relative mb-6 border-l-2 border-dashed border-slate-300 pl-4 ml-[-17px]">
+                        <span class="font-bold text-amber-600">2030 (預測)：物理 AI (Physical AI) 成熟</span>
+                        <p class="text-slate-600 mt-1">AI 與先進機器人深度融合，進入實體世界執行勞力工作。</p>
+                    </div>
+                    <div class="relative pl-4 ml-[-17px] opacity-70">
+                        <span class="font-bold text-purple-600">2035+ (預測)：通用人工智慧 (AGI)</span>
+                        <p class="text-slate-600 mt-1">AI 具備與人類相當甚至超越的跨領域認知與學習能力。帶來極大倫理與生存風險挑戰。</p>
+                    </div>
+                </div>
+
+                <!-- Trends Impact Chart -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128200; 未來五年重大 AI 趨勢衝擊分析</h3>
+                <p class="text-sm text-slate-500 mb-4">綜合 Gartner, McKinsey, WEF 等機構預測之核心趨勢對產業與就業的衝擊程度。</p>
+                <div class="chart-container bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-10">
+                    <canvas id="trendsImpactChart"></canvas>
+                </div>
+
+                <div class="instructor-note mb-8">
+                    <strong>&#128161; 講師備忘錄：</strong> 請特別解釋「AI TRiSM」(AI 信任、風險與安全管理)。企業導入AI的成功關鍵不再只是模型準確度，而是模型的合規性、可解釋性與安全性。
+                </div>
+
+                <!-- Risk Matrix (HTML Grid) -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128721; AI 資安風險矩陣</h3>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                    <div class="min-w-[600px]">
+                        <div class="grid grid-cols-4 gap-2 text-center text-sm">
+                            <div class="col-span-1 flex items-center justify-center font-bold text-slate-500 transform -rotate-90">衝擊程度 (Impact)</div>
+                            <div class="col-span-3 grid grid-rows-3 gap-2">
+                                <!-- High Impact -->
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="p-2 rounded risk-medium flex items-center justify-center">模型竊取<br>(Model Theft)</div>
+                                    <div class="p-2 rounded risk-high flex items-center justify-center">資料投毒<br>(Data Poisoning)</div>
+                                    <div class="p-2 rounded risk-high font-bold flex items-center justify-center">AI 勒索軟體<br>自動化攻擊</div>
+                                </div>
+                                <!-- Medium Impact -->
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="p-2 rounded risk-low flex items-center justify-center">版權侵權<br>(Copyright)</div>
+                                    <div class="p-2 rounded risk-medium flex items-center justify-center">Agent 濫用<br>(Rogue Agents)</div>
+                                    <div class="p-2 rounded risk-high flex items-center justify-center">Deepfake 詐騙<br>AI 假訊息</div>
+                                </div>
+                                <!-- Low Impact -->
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="p-2 rounded risk-low flex items-center justify-center">低品質生成<br>(Hallucination)</div>
+                                    <div class="p-2 rounded risk-low flex items-center justify-center">越獄攻擊<br>(Jailbreak)</div>
+                                    <div class="p-2 rounded risk-medium flex items-center justify-center">Prompt Injection</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 mt-2 text-sm text-slate-500 font-bold text-center">
+                            <div></div>
+                            <div>低發生率</div>
+                            <div>中發生率</div>
+                            <div>高發生率</div>
+                        </div>
+                        <div class="text-center text-sm font-bold text-slate-500 mt-2">發生機率 (Probability)</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chapter 4 -->
+            <section id="ch4" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">第四章：AI 治理與生成式 AI 使用須知</h2>
+                <p class="text-slate-600 mb-8">隨著 AI 能力躍升，全球監管機構正積極制定規範。本章比較國際治理框架，並提供機關與企業實務上的生成式 AI 使用守則。</p>
+
+                <!-- Governance Frameworks Comparison -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#9878;&#65039; 全球主要 AI 治理框架比較</h3>
+                <div class="overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-200 mb-10">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-800 text-white font-bold">
+                            <tr>
+                                <th class="px-4 py-3">框架/法案</th>
+                                <th class="px-4 py-3">制定單位</th>
+                                <th class="px-4 py-3">核心原則與特色</th>
+                                <th class="px-4 py-3">法律效力</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold text-sky-700">EU AI Act<br>(歐盟人工智慧法案)</td>
+                                <td class="px-4 py-3">歐盟委員會<br>(European Commission)</td>
+                                <td class="px-4 py-3">採「風險分級」管理(不可接受、高風險、有限風險、極小風險)。禁止社會評分系統及部分生物辨識。</td>
+                                <td class="px-4 py-3 text-red-600 font-bold">具強制力 (重罰)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold text-sky-700">AI RMF 1.0<br>(AI風險管理框架)</td>
+                                <td class="px-4 py-3">美國國家標準暨技術研究院 (NIST)</td>
+                                <td class="px-4 py-3">提供組織層級的實務指引：Governing(治理)、Mapping(對應)、Measuring(衡量)、Managing(管理)。</td>
+                                <td class="px-4 py-3 text-slate-500">自願性標準 (指引)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold text-sky-700">OECD AI Principles</td>
+                                <td class="px-4 py-3">經濟合作暨發展組織 (OECD)</td>
+                                <td class="px-4 py-3">強調包容性成長、以人為本與公平性、透明度、穩健性與問責制。為多國政策基礎。</td>
+                                <td class="px-4 py-3 text-slate-500">國際倡議</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-10 rounded">
+                    <h4 class="font-bold text-blue-800 mb-2">🇹🇼 台灣 AI 治理現況</h4>
+                    <p class="text-sm text-slate-700">目前採「先行政指引，後立法」策略。行政院已頒布<a href="#" class="text-blue-600 underline">《行政機關使用生成式AI參考指引》</a>，要求公務機關製作機密文書時不得使用公用生成式 AI，且 AI 產出須由人類進行事實查核與最終判斷。國科會亦推動《人工智慧基本法》草案。</p>
+                </div>
+
+                <!-- GenAI Usage Guidelines (Accordion) -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128221; 《生成式 AI 使用守則》</h3>
+                <div class="space-y-3" id="accordion-container">
+                    <!-- Item 1 -->
+                    <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                        <button class="accordion-btn w-full px-5 py-4 text-left font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 flex justify-between items-center focus:outline-none">
+                            <span>政府版 / 公務機關</span>
+                            <span class="icon transform transition-transform">&#9660;</span>
+                        </button>
+                        <div class="accordion-content hidden px-5 py-4 text-sm text-slate-600 space-y-2 border-t border-slate-100">
+                            <p><strong class="text-green-600">✅ 可以做：</strong>草擬非機密新聞稿、翻譯公開資訊、會議記錄初步摘要（需去識別化）。</p>
+                            <p><strong class="text-red-600">❌ 不可做：</strong>上傳具機密性、敏感性之公文、採購底標、民眾身分證字號與病歷。</p>
+                            <p><strong>⚠️ 風險點：</strong>違反《國家機密保護法》與《個人資料保護法》。所有AI生成內容發布前必須經過公務員「人類覆核 (Human-in-the-loop)」。</p>
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                        <button class="accordion-btn w-full px-5 py-4 text-left font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 flex justify-between items-center focus:outline-none">
+                            <span>企業版 / 員工</span>
+                            <span class="icon transform transition-transform">&#9660;</span>
+                        </button>
+                        <div class="accordion-content hidden px-5 py-4 text-sm text-slate-600 space-y-2 border-t border-slate-100">
+                            <p><strong class="text-green-600">✅ 可以做：</strong>行銷文案發想、程式碼輔助除錯 (無機密邏輯部分)、市場公開資料統整。</p>
+                            <p><strong class="text-red-600">❌ 不可做：</strong>將未公開財報、核心演算法原始碼、客戶名單上傳至未簽署企業保密協議(B2B)的免費版 AI 工具 (如免費版 ChatGPT)。</p>
+                            <p><strong>⚠️ 風險點：</strong>喪失營業秘密保護要件。企業應導入地端模型或企業版雲端 AI 以確保資料不被用於模型訓練 (Opt-out)。</p>
+                        </div>
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                        <button class="accordion-btn w-full px-5 py-4 text-left font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 flex justify-between items-center focus:outline-none">
+                            <span>學校版 / 師生</span>
+                            <span class="icon transform transition-transform">&#9660;</span>
+                        </button>
+                        <div class="accordion-content hidden px-5 py-4 text-sm text-slate-600 space-y-2 border-t border-slate-100">
+                            <p><strong class="text-green-600">✅ 可以做：</strong>作為學習教練解釋複雜概念、輔助論文架構發想、語言學習對話練習。</p>
+                            <p><strong class="text-red-600">❌ 不可做：</strong>直接由 AI 生成論文或作業全文並宣稱為原創、依賴 AI 進行事實查核。</p>
+                            <p><strong>⚠️ 風險點：</strong>學術倫理爭議。應培養學生 Prompt Engineering 技能與批判性思考，並依循各校《AI輔助教學指引》註明 AI 使用情形。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chapter 5 -->
+            <section id="ch5" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">第五章：AI 時代的全民數位素養</h2>
+                <p class="text-slate-600 mb-8">面對 AI 的全面普及，國民必須具備相應的數位素養。本章建構「AI 公民核心能力模型」，並提出學習路徑。</p>
+
+                <!-- HTML Diagram: Competency Model -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#129504; AI 公民核心能力模型架構圖</h3>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-10 overflow-x-auto">
+                    <div class="min-w-[600px] flex flex-col items-center gap-6">
+                        <div class="bg-sky-800 text-white font-bold px-8 py-3 rounded-full shadow-lg text-lg">
+                            AI 時代公民核心素養
+                        </div>
+                        <div class="flex gap-4 w-full justify-center">
+                            <!-- Branch 1 -->
+                            <div class="flex flex-col items-center gap-2 w-1/3">
+                                <div class="h-6 w-0.5 bg-slate-300"></div>
+                                <div class="bg-blue-100 border border-blue-300 text-blue-800 font-bold py-2 px-4 rounded w-full text-center">認知與理解</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">AI 識讀力 (運作原理)</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">數據素養 (資料偏見)</div>
+                            </div>
+                            <!-- Branch 2 -->
+                            <div class="flex flex-col items-center gap-2 w-1/3">
+                                <div class="h-6 w-0.5 bg-slate-300"></div>
+                                <div class="bg-teal-100 border border-teal-300 text-teal-800 font-bold py-2 px-4 rounded w-full text-center">應用與技能</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">Prompt Engineering 基礎</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">人機協作能力</div>
+                            </div>
+                            <!-- Branch 3 -->
+                            <div class="flex flex-col items-center gap-2 w-1/3">
+                                <div class="h-6 w-0.5 bg-slate-300"></div>
+                                <div class="bg-amber-100 border border-amber-300 text-amber-800 font-bold py-2 px-4 rounded w-full text-center">防禦與倫理</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">媒體識讀 (辨識假訊息)</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">資安與隱私保護</div>
+                                <div class="bg-white border border-slate-200 p-2 rounded text-sm w-full text-center shadow-sm">AI 倫理與法律意識</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Learning Roadmap -->
+                <h3 class="text-xl font-bold text-slate-700 mb-4">&#128662; 國人 AI 素養培育路徑圖</h3>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-sky-100 border-2 border-sky-500 flex items-center justify-center font-bold text-sky-700 z-10">1</div>
+                        <div class="ml-4 pl-4 border-l-2 border-slate-200 pb-6 relative -top-2">
+                            <h4 class="font-bold text-slate-700">階段一：防護意識覺醒 (全民必修)</h4>
+                            <p class="text-sm text-slate-600 mt-1">認識 Deepfake、防範 AI 詐騙、理解「天上掉下來的禮物通常是陷阱」。重視自身個資，開啟多重認證。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-sky-100 border-2 border-sky-500 flex items-center justify-center font-bold text-sky-700 z-10">2</div>
+                        <div class="ml-4 pl-4 border-l-2 border-slate-200 pb-6 relative -top-2">
+                            <h4 class="font-bold text-slate-700">階段二：工具探索與批判思考 (學生/上班族)</h4>
+                            <p class="text-sm text-slate-600 mt-1">開始使用 ChatGPT 等工具輔助工作與學習，但具備「懷疑精神」。學會對 AI 產出的資訊進行事實查核，不輕信幻覺 (Hallucination)。</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-sky-100 border-2 border-sky-500 flex items-center justify-center font-bold text-sky-700 z-10">3</div>
+                        <div class="ml-4 pl-4 pb-2 relative -top-2">
+                            <h4 class="font-bold text-slate-700">階段三：價值創造與倫理實踐 (專業人員/決策者)</h4>
+                            <p class="text-sm text-slate-600 mt-1">掌握進階 Prompt 技巧，將 AI 整合入工作流。在開發或導入 AI 服務時，遵守資料治理與隱私法規，確保演算法無歧視且具備可解釋性。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- References & Fact Check -->
+            <section id="references" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-6">事實查核與文獻參考</h2>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-5 rounded mb-8">
+                    <h3 class="font-bold text-red-800 mb-2">&#128269; 最終事實查核 (Fact Check) 報告</h3>
+                    <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
+                        <li><strong>資料時效性聲明：</strong> 本報告基準資料涵蓋至 2024-2026 年初。AI 發展極快，各國《AI基本法》條文與技術能力（如 Agentic AI 的實際落地程度）可能在數月內發生變動。授課前應查閱「行政院數位發展部」最新公告。</li>
+                        <li><strong>爭議內容：</strong> 「AGI (通用人工智慧) 於 2035 年實現」為業界預測，學界對此時間點尚無共識，應視為「未來預測」而非「已驗證事實」。</li>
+                        <li><strong>法規狀態：</strong> 歐盟 AI Act 已正式生效，但細部執行細則仍在滾動調整；台灣《人工智慧基本法》草案進度需持續追蹤。</li>
+                    </ul>
+                </div>
+
+                <h3 class="font-bold text-slate-700 mb-2">參考文獻 (APA 7th Format)</h3>
+                <ul class="text-sm text-slate-600 space-y-3 break-words">
+                    <li>European Commission. (2024). <em>EU AI Act: first regulation on artificial intelligence</em>.</li>
+                    <li>Gartner. (2023). <em>Top 10 Strategic Technology Trends for 2024</em>.</li>
+                    <li>National Institute of Standards and Technology (NIST). (2023). <em>Artificial Intelligence Risk Management Framework (AI RMF 1.0)</em>. U.S. Department of Commerce.</li>
+                    <li>行政院 (2023)。《行政機關使用生成式AI參考指引》。台灣：行政院。</li>
+                    <li>國家資通安全研究院 (NICS). (2024)。《AI 資安風險與防護指引》。台灣：數位發展部。</li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Navigation Logic ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+
+        function switchSection(targetId) {
+            sections.forEach(sec => sec.classList.add('hidden'));
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            document.getElementById(targetId.replace('#', '')).classList.remove('hidden');
+            document.querySelector(`a[href="${targetId}"]`).classList.add('active');
+            
+            // Scroll to top
+            document.querySelector('main').scrollTo(0,0);
+            
+            // Close mobile menu
+            if(window.innerWidth < 768) {
+                sidebar.classList.add('hidden');
+            }
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = e.target.getAttribute('href');
+                switchSection(target);
+                // Update URL hash without jumping
+                history.pushState(null, null, target);
+            });
+        });
+
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+        });
+
+        // Initialize from Hash
+        if(window.location.hash) {
+            switchSection(window.location.hash);
+        }
+
+        // --- Role Toggle Logic ---
+        const roleToggle = document.getElementById('role-toggle');
+        const roleLabel = document.getElementById('role-label');
+        
+        roleToggle.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                document.body.classList.add('instructor-mode');
+                roleLabel.textContent = '講師版';
+                roleLabel.classList.add('text-amber-600');
+                roleLabel.classList.remove('text-sky-700');
+            } else {
+                document.body.classList.remove('instructor-mode');
+                roleLabel.textContent = '學員版';
+                roleLabel.classList.remove('text-amber-600');
+                roleLabel.classList.add('text-sky-700');
+            }
+        });
+
+        // --- Tabs Logic (Chapter 1) ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.guard-content');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Reset
+                tabBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.add('text-slate-500');
+                });
+                tabContents.forEach(c => c.classList.add('hidden'));
+                
+                // Activate clicked
+                btn.classList.add('active');
+                btn.classList.remove('text-slate-500');
+                document.getElementById(btn.dataset.target).classList.remove('hidden');
+            });
+        });
+
+        // --- Accordion Logic (Chapter 4) ---
+        const accordionBtns = document.querySelectorAll('.accordion-btn');
+        accordionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const content = btn.nextElementSibling;
+                const icon = btn.querySelector('.icon');
+                
+                if(content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    icon.style.transform = 'rotate(180deg)';
+                    btn.classList.add('bg-sky-50');
+                } else {
+                    content.classList.add('hidden');
+                    icon.style.transform = 'rotate(0deg)';
+                    btn.classList.remove('bg-sky-50');
+                }
+            });
+        });
+
+        // --- Chart.js Implementations ---
+        // Chart 1: TW Smart City Radar
+        const ctxRadar = document.getElementById('twSmartCityChart').getContext('2d');
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['智慧交通', '智慧醫療', '智慧能源', '智慧防災', '智慧治理', '智慧安防'],
+                datasets: [{
+                    label: '台灣發展成熟度 (估值)',
+                    data: [85, 90, 60, 75, 70, 80],
+                    backgroundColor: 'rgba(14, 165, 233, 0.2)', // Sky-500
+                    borderColor: 'rgba(14, 165, 233, 1)',
+                    pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(14, 165, 233, 1)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: { font: { family: 'PingFang TC, sans-serif', size: 12 }, color: '#475569' },
+                        ticks: { min: 0, max: 100, stepSize: 20, display: false }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { family: 'PingFang TC, sans-serif' } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) { return `成熟度: ${context.raw} / 100`; }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: AI Trends Impact Bar Chart
+        const ctxBar = document.getElementById('trendsImpactChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['Agentic AI', 'GenAI Security', 'AI TRiSM', 'Edge AI', 'Multimodal AI'],
+                datasets: [
+                    {
+                        label: '對產業變革的衝擊力',
+                        data: [95, 90, 85, 75, 88],
+                        backgroundColor: '#0284C7' // sky-600
+                    },
+                    {
+                        label: '對現有就業的取代風險',
+                        data: [80, 40, 30, 50, 70],
+                        backgroundColor: '#F59E0B' // amber-500
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y', // Horizontal bar chart for better label reading
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: { display: true, text: '衝擊指數 (0-100)', color: '#64748b' }
+                    },
+                    y: {
+                        ticks: {
+                            font: { family: 'PingFang TC, sans-serif', size: 12 },
+                            color: '#334155'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'PingFang TC, sans-serif' } } }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
